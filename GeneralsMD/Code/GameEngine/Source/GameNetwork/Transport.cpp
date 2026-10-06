@@ -32,6 +32,7 @@
 #include "GameNetwork/LinkSimulation.h"
 #include "GameNetwork/Transport.h"
 #include "GameNetwork/NetworkInterface.h"
+#include "GameNetwork/Relay.h"
 
 #ifdef _INTERNAL
 // for occasional debugging...
@@ -89,6 +90,7 @@ Transport::Transport(void)
 	m_shareAddress = false;
 	m_broadcastsOnly = false;
 #endif
+	m_relay = NULL;
 }
 
 Transport::~Transport(void)
@@ -103,6 +105,18 @@ Bool Transport::init( AsciiString ip, UnsignedShort port )
 
 Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 {
+	releaseRelay();
+
+	/* The relay address (Relay.h) is not on any network card, so there is nothing to bind: this port of
+		 it lives in TheRelay, which carries every Transport's packets over its one socket. */
+	if (TheRelay != NULL && ip != 0 && ip == TheRelay->getRelayIP())
+	{
+		m_relay = TheRelay;
+		m_relay->openPort(port);
+		initBuffers(port);
+		return true;
+	}
+
 	// ----- Initialize Winsock -----
 	// (Windows only: POSIX sockets need no start-up, so m_winsockInit stays false there.)
 #if defined(_WIN32)
@@ -153,6 +167,12 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 		return false;
 	}
 
+	initBuffers(port);
+	return true;
+}
+
+void Transport::initBuffers( UnsignedShort port )
+{
 	// ------- Clear buffers --------
 	// i is used after the loop; VC6 for-scope let it escape.
 	int i;
@@ -186,8 +206,44 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 		("Transport: simulating a link with %d ms latency (amp %d, period %d, noise %d) and %d%% packet loss\n",
 		TheGlobalData->m_latencyAverage, TheGlobalData->m_latencyAmplitude,
 		TheGlobalData->m_latencyPeriod, TheGlobalData->m_latencyNoise, TheGlobalData->m_packetLoss));
+}
 
-	return true;
+void Transport::releaseRelay( void )
+{
+	if (m_relay == NULL)
+		return;
+	// A relay deleted under us (the LAN screen was left) has nothing of ours to close.
+	if (m_relay == TheRelay)
+		m_relay->closePort(m_port);
+	m_relay = NULL;
+}
+
+Int Transport::readDatagram( unsigned char *buf, Int len, sockaddr_in *from )
+{
+	if (m_relay == NULL)
+		return m_udpsock->Read(buf, len, from);
+	if (m_relay != TheRelay)
+		return -1;
+	UnsignedInt fromIP;
+	UnsignedShort fromPort;
+	Int got = m_relay->receive(m_port, buf, len, &fromIP, &fromPort);
+	if (got > 0)
+	{
+		memset(from, 0, sizeof(*from));
+		from->sin_family = AF_INET;
+		from->sin_addr.s_addr = htonl(fromIP);
+		from->sin_port = htons(fromPort);
+	}
+	return got;
+}
+
+Int Transport::writeDatagram( const unsigned char *buf, Int len, UnsignedInt addr, UnsignedShort port )
+{
+	if (m_relay == NULL)
+		return m_udpsock->Write(buf, len, addr, port);
+	if (m_relay != TheRelay)
+		return -1;
+	return m_relay->send(m_port, addr, port, buf, len) ? len : -1;
 }
 
 #if !defined(_WIN32)
@@ -216,6 +272,7 @@ void Transport::moveReceivedInto( Transport &inbox )
 
 void Transport::reset( void )
 {
+	releaseRelay();
 	if (m_udpsock)
 	{
 		delete m_udpsock;
@@ -248,7 +305,7 @@ Bool Transport::update( void )
 }
 
 Bool Transport::doSend() {
-	if (!m_udpsock)
+	if (!m_udpsock && !m_relay)
 	{
 		DEBUG_LOG(("Transport::doSend() - m_udpSock is NULL!\n"));
 		return FALSE;
@@ -278,7 +335,7 @@ Bool Transport::doSend() {
 		{
 			int bytesSent = 0;
 			// Send this message
-			if ((bytesSent = m_udpsock->Write((unsigned char *)(&m_outBuffer[i]), m_outBuffer[i].length + sizeof(TransportMessageHeader), m_outBuffer[i].addr, m_outBuffer[i].port)) > 0)
+			if ((bytesSent = writeDatagram((unsigned char *)(&m_outBuffer[i]), m_outBuffer[i].length + sizeof(TransportMessageHeader), m_outBuffer[i].addr, m_outBuffer[i].port)) > 0)
 			{
 				//DEBUG_LOG(("Sending %d bytes to %d:%d\n", m_outBuffer[i].length + sizeof(TransportMessageHeader), m_outBuffer[i].addr, m_outBuffer[i].port));
 				m_outgoingPackets[m_statisticsSlot]++;
@@ -325,7 +382,7 @@ Bool Transport::doSend() {
 
 Bool Transport::doRecv() 
 {
-	if (!m_udpsock)
+	if (!m_udpsock && !m_relay)
 	{
 		DEBUG_LOG(("Transport::doRecv() - m_udpSock is NULL!\n"));
 		return FALSE;
@@ -341,7 +398,9 @@ Bool Transport::doRecv()
 	unsigned char *buf = (unsigned char *)&incomingMessage;
 	int len = MAX_NETWORK_MESSAGE_LEN;
 //	DEBUG_LOG(("Transport::doRecv - checking\n"));
-	while ( (len=m_udpsock->Read(buf, MAX_NETWORK_MESSAGE_LEN, &from)) > 0 )
+	if (m_relay != NULL && m_relay == TheRelay)
+		m_relay->service();
+	while ( (len=readDatagram(buf, MAX_NETWORK_MESSAGE_LEN, &from)) > 0 )
 	{
 		// Packet loss simulation
 		if (m_usePacketLoss)

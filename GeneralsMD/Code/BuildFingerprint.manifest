@@ -818,6 +818,7 @@ GameEngine/Include/GameNetwork/NetworkDefs.h
 GameEngine/Include/GameNetwork/NetworkInterface.h
 GameEngine/Include/GameNetwork/NetworkUtil.h
 GameEngine/Include/GameNetwork/RankPointValue.h
+GameEngine/Include/GameNetwork/Relay.h
 GameEngine/Include/GameNetwork/StallJudgement.h
 GameEngine/Include/GameNetwork/Transport.h
 GameEngine/Include/GameNetwork/User.h
@@ -1439,6 +1440,7 @@ GameEngine/Source/GameNetwork/NetMessageStream.cpp
 GameEngine/Source/GameNetwork/NetPacket.cpp
 GameEngine/Source/GameNetwork/Network.cpp
 GameEngine/Source/GameNetwork/NetworkUtil.cpp
+GameEngine/Source/GameNetwork/Relay.cpp
 GameEngine/Source/GameNetwork/StallJudgement.cpp
 GameEngine/Source/GameNetwork/Transport.cpp
 GameEngine/Source/GameNetwork/User.cpp
@@ -2785,6 +2787,7 @@ Tests/run_generals_smoke.sh
 Tests/run_ini_crlf_check.sh
 Tests/run_locomotor_check.sh
 Tests/run_net_check.sh
+Tests/run_relay_check.sh
 Tests/run_replay_check.sh
 Tests/sdl_gpu_probe.cpp
 Tests/shader_cases.h
@@ -2859,6 +2862,7 @@ Tests/test_posixpath.cpp
 Tests/test_premain_strings.cpp
 Tests/test_production_input.inc
 Tests/test_registryfile.cpp
+Tests/test_relay.cpp
 Tests/test_render_hooks.cpp
 Tests/test_road_buffer.cpp
 Tests/test_sdl_gpu_frame.cpp

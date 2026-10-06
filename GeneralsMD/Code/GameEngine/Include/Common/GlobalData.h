@@ -497,6 +497,8 @@ public:
 	Int m_netGameLocalSlot;						///< -netslot <n>: which of those addresses this copy of the game is
 	Int m_netGameAISlots;							///< -netai <n>: that many AI seats after the addresses, at the -aidiff rung
 	AsciiString m_lanPlayerName;			///< -lanname <name>: the name this copy takes in the LAN lobby (empty = the one in the preferences)
+	AsciiString m_relayServer;				///< RelayServer in Options.ini, or -relay: "host[:port]" of the relay the LAN screen plays through (empty = a real LAN)
+	AsciiString m_relayKey;						///< RelayKey in Options.ini, or -relaykey: the relay server's key
 	Bool m_lanLobbyOnStart;						///< -lanlobby: open the LAN lobby instead of stopping at the main menu
 	Bool m_skirmishLobbyOnStart;			///< -skirmishlobby: open the skirmish staging room instead of stopping at the main menu
 	Bool m_optionsMenuOnStart;				///< -optionsmenu: open the options screen over the main menu at startup

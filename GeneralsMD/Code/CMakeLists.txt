@@ -2265,6 +2265,20 @@ if(ZH_PLATFORM_POSIX)
   add_executable(lan_broadcast_probe ${TESTS}/lan_broadcast_probe.cpp ${TESTS}/test_gameengine_stubs.cpp)
   target_link_libraries(lan_broadcast_probe PRIVATE gameengine posixdevice w3ddevice)
 endif()
+# The relay (GameNetwork/Relay.h): the SHA-256 and HMAC its handshake rests on, against their standards'
+# vectors, everywhere.  relay_check runs it again against Tools/Relay/zh_relay.py on a loopback port, where
+# a Transport on the relay address and a second client meet through the real server (POSIX: the runner is
+# a shell script; Skipped (77) without python3).  The server's own tests are relay_server_tests below.
+add_lib_test(test_relay gameengine)
+target_sources(test_relay PRIVATE ${TESTS}/test_gameengine_stubs.cpp)
+set_target_properties(test_relay PROPERTIES CXX_STANDARD 17)
+if(ZH_PLATFORM_POSIX)
+  target_link_libraries(test_relay PRIVATE posixdevice w3ddevice)
+  add_test(NAME relay_check
+           COMMAND ${TESTS}/run_relay_check.sh $<TARGET_FILE:test_relay>
+                   ${CMAKE_CURRENT_SOURCE_DIR}/../../Tools/Relay/zh_relay.py)
+  set_tests_properties(relay_check PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+endif()
 add_lib_test(test_terrain_golden gameengine)
 target_compile_definitions(test_terrain_golden PRIVATE
   TERRAIN_GOLDEN_FILE="${CMAKE_CURRENT_SOURCE_DIR}/Tests/terrain_golden.txt")
@@ -2629,6 +2643,10 @@ if(Python3_Interpreter_FOUND)
   endif()
   add_test(NAME bigfile_selfcheck
            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Tools/bigfile.py selfcheck)
+  # The relay server (Tools/Relay/zh_relay.py): its handshake, routing and timeouts without a socket, and
+  # two clients over a real loopback one.  Standard library only, so it runs wherever python3 does.
+  add_test(NAME relay_server_tests
+           COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/../../Tools/Relay)
   # Tools/vfx_tune.py rewrites those INIs in place; its selfcheck runs both rule sets over a
   # synthetic one and checks the block parser did not eat an End or duplicate a key.
   add_test(NAME vfx_tune_selfcheck

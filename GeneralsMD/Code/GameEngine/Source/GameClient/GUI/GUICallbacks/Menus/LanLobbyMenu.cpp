@@ -63,10 +63,13 @@
 #include "GameNetwork/IPEnumeration.h"
 #include "GameNetwork/LANAPICallbacks.h"
 #include "GameNetwork/LANGameInfo.h"
+#include "GameNetwork/Relay.h"
 
 Bool LANisShuttingDown = false;
 Bool LANbuttonPushed = false;
 Bool LANSocketErrorDetected = FALSE;
+static Bool LANRelayErrorDetected = FALSE;	///< RelayServer is set and connect() failed; RelayClient::getStatus says why
+static const UnsignedInt RELAY_CONNECT_MS = 4000;
 char *LANnextScreen = NULL;
 
 static Int	initialGadgetDelay = 2;
@@ -439,6 +442,22 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 		*/
 	}
 
+	/* RelayServer in Options.ini (or -relay) plays the LAN screen over the internet: connect to the relay
+		 and take the address it gives us, and everything from here on treats it as this machine's LAN
+		 address (GameNetwork/Relay.h).  The relay stays up for as long as the LAN screen and its games do,
+		 and keeps the same address through a dropped connection. */
+	LANRelayErrorDetected = FALSE;
+	if (TheGlobalData->m_relayServer.isNotEmpty())
+	{
+		if (TheRelay == NULL)
+			TheRelay = NEW RelayClient;
+		TheRelay->configure(TheGlobalData->m_relayServer, TheGlobalData->m_relayKey);
+		if (TheRelay->connect(RELAY_CONNECT_MS))
+			IP = TheRelay->getRelayIP();
+		else
+			LANRelayErrorDetected = TRUE;
+	}
+
 	// TheLAN->init() sets us to be in a LAN menu screen automatically.
 	TheLAN->init();
 	if (TheLAN->SetLocalIP(IP) == FALSE) {
@@ -494,6 +513,13 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	// coming out of a game, re-load the shell map
 	TheShell->showShellMap(TRUE);
 		
+	if (TheRelay != NULL && TheRelay->isConnected())
+	{
+		UnicodeString relayLine;
+		relayLine.format(TheGameText->fetch("LAN:RelayConnected"), TheRelay->getServer().str());
+		GadgetListBoxAddEntryText(listboxChatWindow, relayLine, chatSystemColor, -1, 0);
+	}
+
 	// check for MOTD
 	TheLAN->checkMOTD();
 	layout->hide(FALSE);
@@ -615,6 +641,25 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 
 	if (TheShell->isAnimFinished() && !LANbuttonPushed && TheLAN)
 		TheLAN->update();
+
+	if (LANRelayErrorDetected)
+	{
+		LANRelayErrorDetected = FALSE;
+		const char *label;
+		switch (TheRelay ? TheRelay->getStatus() : RelayClient::RELAY_UNREACHABLE)
+		{
+			case RelayClient::RELAY_NO_SUCH_HOST:	label = "LAN:RelayNoSuchHost"; break;
+			case RelayClient::RELAY_WRONG_KEY:		label = "LAN:RelayWrongKey"; break;
+			case RelayClient::RELAY_FULL:					label = "LAN:RelayFull"; break;
+			default:															label = "LAN:RelayUnreachable"; break;
+		}
+		UnicodeString body;
+		body.format(TheGameText->fetch(label), TheGlobalData->m_relayServer.str());
+		MessageBoxOk(TheGameText->fetch("GUI:NetworkError"), body, NULL);
+		// the same way out as a socket error: back to the main menu
+		TheWindowManager->winSendSystemMsg(buttonBack->winGetParent(), GBM_SELECTED,
+																			 (WindowMsgData)buttonBack, buttonBackID);
+	}
 
 	if (LANSocketErrorDetected == TRUE) {
 		LANSocketErrorDetected = FALSE;
@@ -769,6 +814,9 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					TheShell->pop();
 					delete TheLAN;
 					TheLAN = NULL;
+					// Leaving the LAN screen leaves the relay too; the next visit connects again.
+					delete TheRelay;
+					TheRelay = NULL;
 					//TheTransitionHandler->reverse("LanLobbyFade");
 
 				} //if ( controlID == buttonBack )

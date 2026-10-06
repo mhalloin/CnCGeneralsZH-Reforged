@@ -759,6 +759,8 @@ GlobalData::GlobalData()
 	m_netGameLocalSlot = 0;
 	m_netGameAISlots = 0;
 	m_lanPlayerName.clear(); // the lobby name comes out of the preferences unless -lanname says otherwise
+	m_relayServer.clear();	// no relay: the LAN screen plays on the LAN (GameNetwork/Relay.h)
+	m_relayKey.clear();
 	m_lanLobbyOnStart = FALSE;
 	m_skirmishLobbyOnStart = FALSE;
 	m_optionsMenuOnStart = FALSE;
@@ -1460,6 +1462,8 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 	TheWritableGlobalData->m_doubleClickAttackMove = optionPref.getDoubleClickAttackMoveEnabled();
 	TheWritableGlobalData->m_keyboardScrollFactor = optionPref.getScrollFactor();
 	TheWritableGlobalData->m_defaultIP = optionPref.getLANIPAddress();
+	TheWritableGlobalData->m_relayServer = optionPref.getAsciiString("RelayServer", AsciiString::TheEmptyString);
+	TheWritableGlobalData->m_relayKey = optionPref.getAsciiString("RelayKey", AsciiString::TheEmptyString);
 	TheWritableGlobalData->m_firewallSendDelay = optionPref.getSendDelay();
 	TheWritableGlobalData->m_firewallBehavior = optionPref.getFirewallBehavior();
 	TheWritableGlobalData->m_firewallPortAllocationDelta = optionPref.getFirewallPortAllocationDelta();

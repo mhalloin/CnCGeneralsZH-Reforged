@@ -1,0 +1,31 @@
+# The relay server as a systemd service.  Tools/Relay/README.md walks through installing it:
+#
+#   sudo install -D -m 644 zh_relay.py /opt/zh-relay/zh_relay.py
+#   python3 zh_relay.py --new-key | sudo install -D -m 600 /dev/stdin /etc/zh-relay/relay.key
+#   sudo cp zh-relay.service /etc/systemd/system/ && sudo systemctl enable --now zh-relay
+#   journalctl -u zh-relay -f        # who joined and left
+#
+# It runs as a throwaway user with no write access anywhere, and reads the key through systemd's
+# credentials, so the key file itself can stay readable by root alone.  Needs systemd 248 or newer
+# (Ubuntu 22.04, Debian 12 and later).
+
+[Unit]
+Description=Zero Hour Reforged relay server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+LoadCredential=relay.key:/etc/zh-relay/relay.key
+ExecStart=/usr/bin/python3 /opt/zh-relay/zh_relay.py --key-file %d/relay.key --port 8090
+Restart=always
+RestartSec=2
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target
