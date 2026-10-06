@@ -2204,6 +2204,28 @@ Int parseLanName(char *args[], int num)
 	return 2;
 }
 
+/* -relay <host[:port]> and -relaykey <key> are RelayServer and RelayKey from Options.ini, for one run:
+	 the LAN screen then plays through that relay server instead of the local network (GameNetwork/Relay.h).
+	 A switch as well as a preference so that a script can start copies against a test server without
+	 touching the file every copy reads. */
+Int parseRelay(char *args[], int num)
+{
+	if (TheWritableGlobalData && num > 1)
+	{
+		TheWritableGlobalData->m_relayServer = args[1];
+	}
+	return 2;
+}
+
+Int parseRelayKey(char *args[], int num)
+{
+	if (TheWritableGlobalData && num > 1)
+	{
+		TheWritableGlobalData->m_relayKey = args[1];
+	}
+	return 2;
+}
+
 /* -lanlobby starts on the LAN screen rather than the main menu.  Two copies on one machine are
    started by a script and the first thing both of them do is the same four clicks; this is those
    clicks.  It turns the shell map off with it: Shell::showShell only puts the main menu on the
@@ -2567,6 +2589,8 @@ static CommandLineParam params[] =
 	{ "-lanip", parseLanIP },
 	{ "-lanname", parseLanName },
 	{ "-lanlobby", parseLanLobby },
+	{ "-relay", parseRelay },
+	{ "-relaykey", parseRelayKey },
 	{ "-skirmishlobby", parseSkirmishLobby },
 	{ "-optionsmenu", parseOptionsMenu },
 

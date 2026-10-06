@@ -37,6 +37,7 @@
 #include "Common/Registry.h"
 #include "GameNetwork/LANAPI.h"
 #include "GameNetwork/NetworkUtil.h"
+#include "GameNetwork/Relay.h"
 #include "Common/GlobalData.h"
 #include "Common/RandomValue.h"
 #include "GameClient/GameText.h"
@@ -1304,6 +1305,10 @@ void LANAPI::listenForBroadcasts( void )
 	/* A lobby bound to the wildcard address (init() before SetLocalIP chooses one) hears broadcasts
 		 itself, and a second wildcard socket would take each one twice. */
 	if (m_localIP == 0 || m_localIP == INADDR_ANY)
+		return;
+	/* Nor through a relay (Relay.h): it hands this lobby its broadcasts itself, and a wildcard socket
+		 would list games from the real LAN at addresses nobody on the relay can reach. */
+	if (TheRelay != NULL && m_localIP == TheRelay->getRelayIP())
 		return;
 	if (!m_broadcastListener->initBroadcastListener(lobbyPort))
 	{

@@ -133,6 +133,11 @@ your map as a pool of their colour with their name on it.
 Two separate PCs have played each other over LAN. On a single machine, two copies of the game can
 play each other through the LAN screen, which is how every network change here gets tested.
 
+Over the internet, the LAN screen plays through a relay server you run yourself, on any machine with
+a public address. Only people with its key get in, nobody forwards a port, and the lobby and the
+match work as they do on a LAN. [Tools/Relay/README.md](Tools/Relay/README.md) sets one up on a
+rented server in a few minutes; each player then adds `RelayServer` and `RelayKey` to `Options.ini`.
+
 ![The LAN room's Lobby Settings page: starting cash, superweapons, tech respawn, peace time, shared income, Pro Rules and the unit limit](.github/media/lobby.jpg)
 
 ### A picture that holds up
@@ -210,6 +215,8 @@ Almost everything is on the seven pages of the options screen. These still live 
 |:--|:--|
 | `ShowAllyCursors = no` | stops sending your mouse position to allies and stops drawing theirs |
 | `EdgeScrollInWindowedMode = yes` | scrolls at the screen edge in a window too |
+| `RelayServer = your.server:8090` | plays the LAN screen over the internet through your relay server ([Tools/Relay](Tools/Relay/README.md)) |
+| `RelayKey = <the key>` | the relay server's key |
 
 On the command line, `-d3d9` starts the old renderer and `-dx11post off` gives the Direct3D 11 picture
 without its finishing passes. `-nologo` skips the EA logo and `-novideo` every movie, and `-loadsave
@@ -366,8 +373,10 @@ them, and any source change separates them.
 
 ## Not there yet
 
-- Internet play. LAN works between separate PCs; matches over the internet wait on a lobby server of
-  Reforged's own, which is still on paper.
+- Internet play without a server of your own. The LAN screen plays over the internet through a
+  private relay server ([Tools/Relay](Tools/Relay/README.md)); a public lobby where strangers find each
+  other is still on paper. A full match through the relay between machines in different houses has
+  not been played yet.
 - A Direct3D 11 frame still costs a little more than a Direct3D 9 one, 7.6 ms against 6.3 ms on a
   screen full of Inferno Cannon fire. `-d3d9` is the way back.
 - No gamepad, and no Direct3D 12.

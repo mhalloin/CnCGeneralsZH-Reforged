@@ -8,6 +8,16 @@ found and fixed â€” EA's own, not port damage.**
 
 ---
 
+## Network games over the internet, through a server of your own
+
+- The LAN screen plays over the internet. Put a small relay server on any machine with a public address, a rented one for a few dollars a month will do, give your friends its address and key, and each of you adds two lines to `Options.ini`: `RelayServer = your.server:8090` and `RelayKey = the key`. The LAN screen then lists the games of everyone on that server instead of your local network's, with the same lobby, chat, settings, map transfer and match as on a LAN. Nobody forwards a port or installs a virtual network: every connection goes out from your side to the server.
+- It is private. The server lets in only someone who holds its key, and the key is never sent: the game and the server each prove they know it. The README says how to set the server up.
+- The lobby says when you are playing through a server, and says why when you cannot: the server name does not resolve, nothing answered, the key was turned down, or the server is full. Each takes you back to the main menu, as a network error always has.
+- A dropped connection to the server, or the server restarting, puts you back where you were within a few seconds, at the same place in the room: the server gives a game the same address every time it reconnects. Measured with the server restarted under two connected games: their packets flowed again after 4 seconds.
+- Without those two lines the LAN screen is the LAN screen, as before.
+
+---
+
 ## Zero Hour on a Mac, on Linux and on the Steam Deck
 
 - The game runs on Apple silicon Macs and on Linux, the Steam Deck included, as a program built for that machine. There is no Wine or Proton underneath. It draws through Metal on a Mac and through Vulkan on Linux, from the same Zero Hour files you already own.
@@ -1930,6 +1940,6 @@ The whole HUD is on the hardware. Four colours carry it, and they mean the same 
 ---
 
 ## Not there yet
-- Internet play. LAN works: two separate PCs have played each other on one network. Matches over the internet wait on Reforged's own lobby server, which is still on paper.
+- Internet play without a server of your own. LAN works: two separate PCs have played each other on one network, and the LAN screen plays over the internet through a private relay server you run. A public lobby where strangers find each other is still on paper, and a full match through the relay between machines in different houses has not been played yet.
 - A frame through Direct3D 11 still costs a little more than it does through the old renderer: 7.6ms against 6.3ms in a screen full of inferno cannon fire. `-d3d9` on the command line puts the old renderer back on its own.
 - You need to own the game; no game data ships here.

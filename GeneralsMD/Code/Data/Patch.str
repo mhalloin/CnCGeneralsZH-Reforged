@@ -1702,3 +1702,26 @@ END
 CONTROLBAR:Demo_ToolTipGLAScienceRebelAmbush
 "Allows you to create a surprise ambush of Rebels anywhere \n \n Rank 1: 4 Rebels \n Rank 2: 6 Rebels \n Rank 3: 10 Rebels \n \n Deploy from: Command Center"
 END
+
+// The LAN screen through a relay server (RelayServer and RelayKey in Options.ini).  %hs is the server
+// as Options.ini names it.
+
+LAN:RelayConnected
+"Playing over the internet through the relay server at %hs."
+END
+
+LAN:RelayNoSuchHost
+"The relay server %hs could not be found. Check RelayServer in Options.ini."
+END
+
+LAN:RelayUnreachable
+"The relay server at %hs did not answer. Check that it is running, that its UDP port is open, and RelayServer in Options.ini."
+END
+
+LAN:RelayWrongKey
+"The relay server at %hs turned your key down. RelayKey in Options.ini has to be the key the server was started with."
+END
+
+LAN:RelayFull
+"The relay server at %hs is full."
+END

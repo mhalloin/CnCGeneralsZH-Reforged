@@ -36,6 +36,8 @@
 #include "GameNetwork/udp.h"
 #include "GameNetwork/NetworkDefs.h"
 
+class RelayClient;
+
 /**
  * The transport layer handles the UDP socket for the game, and will packetize and
  * de-packetize multiple ACK/CommandPacket/etc packets into larger aggregates.
@@ -61,7 +63,7 @@ public:
 	Bool queueSend(UnsignedInt addr, UnsignedShort port, const UnsignedByte *buf, Int len /*,
 		NetMessageFlags flags, Int id */);				///< Queue a packet for sending to the specified address and port.  This will be sent on the next update() call.
 
-	inline Bool allowBroadcasts(Bool val) { if (!m_udpsock) return false; return (m_udpsock->AllowBroadcasts(val))?true:false; }
+	inline Bool allowBroadcasts(Bool val) { if (m_relay) return true; if (!m_udpsock) return false; return (m_udpsock->AllowBroadcasts(val))?true:false; }
 
 #if !defined(_WIN32)
 	/* Port defect 29 (udp.h): shareAddress(TRUE) before init lets this socket share its port with another
@@ -69,7 +71,7 @@ public:
 		 broadcasts sent to that port.  Both persist across reset(). */
 	void shareAddress( Bool val ) { m_shareAddress = val; }
 	Bool initBroadcastListener( UnsignedShort port );
-	Bool isOpen( void ) const { return m_udpsock != NULL; }
+	Bool isOpen( void ) const { return m_udpsock != NULL || m_relay != NULL; }
 	/// Moves every received message into free slots of `inbox`'s m_inBuffer, each once; what does not
 	/// fit stays here for the next call
 	void moveReceivedInto( Transport &inbox );
@@ -100,6 +102,9 @@ private:
 	Bool m_shareAddress;
 	Bool m_broadcastsOnly;
 #endif
+	/* Relay.h: non-NULL when this Transport is bound to the relay address, which exists only inside the
+		 relay server.  Its packets then go through TheRelay rather than m_udpsock, which stays NULL. */
+	RelayClient *m_relay;
 
 	// Latency insertion and packet loss
 	Bool m_useLatency;
@@ -116,6 +121,10 @@ private:
 	UnsignedInt m_lastSecond;
 
 	Bool isGeneralsPacket( TransportMessage *msg );
+	void initBuffers( UnsignedShort port );		///< the part of init() after the socket is bound
+	void releaseRelay( void );
+	Int readDatagram( unsigned char *buf, Int len, sockaddr_in *from );		///< m_udpsock's Read, or the relay's
+	Int writeDatagram( const unsigned char *buf, Int len, UnsignedInt addr, UnsignedShort port );
 };
 
 #endif // _TRANSPORT_H_
